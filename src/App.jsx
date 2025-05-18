@@ -1,35 +1,68 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import React, { useState, useCallback } from "react";
+import "./App.css";
 
-function App() {
-  const [count, setCount] = useState(0)
+import Playlist from "./components/Playlist/Playlist";
+import SearchBar from "./components/SearchBar/SearchBar";
+import SearchResults from "./components/SearchResults/SearchResults";
+import Spotify from "./util/Spotify";
+
+const App = () => {
+  const [searchResults, setSearchResults] = useState([]);
+  const [playlistName, setPlaylistName] = useState("New Playlist");
+  const [playlistTracks, setPlaylistTracks] = useState([]);
+
+  const search = useCallback((term) => {
+    Spotify.search(term).then(setSearchResults);
+  }, []);
+
+  const addTrack = useCallback(
+    (track) => {
+      if (playlistTracks.some((savedTrack) => savedTrack.id === track.id))
+        return;
+
+      setPlaylistTracks((prevTracks) => [...prevTracks, track]);
+    },
+    [playlistTracks]
+  );
+
+  const removeTrack = useCallback((track) => {
+    setPlaylistTracks((prevTracks) =>
+      prevTracks.filter((currentTrack) => currentTrack.id !== track.id)
+    );
+  }, []);
+
+  const updatePlaylistName = useCallback((name) => {
+    setPlaylistName(name);
+  }, []);
+
+  const savePlaylist = useCallback(() => {
+    const trackUris = playlistTracks.map((track) => track.uri);
+    Spotify.savePlaylist(playlistName, trackUris).then(() => {
+      setPlaylistName("New Playlist");
+      setPlaylistTracks([]);
+    });
+  }, [playlistName, playlistTracks]);
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+    <div>
+      <h1>
+        Ja<span className="highlight">mmm</span>ing
+      </h1>
+      <div className="App">
+        <SearchBar onSearch={search} />
+        <div className="App-playlist">
+          <SearchResults searchResults={searchResults} onAdd={addTrack} />
+          <Playlist
+            playlistName={playlistName}
+            playlistTracks={playlistTracks}
+            onNameChange={updatePlaylistName}
+            onRemove={removeTrack}
+            onSave={savePlaylist}
+          />
+        </div>
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
-}
+    </div>
+  );
+};
 
-export default App
+export default App;
